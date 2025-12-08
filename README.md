@@ -1,47 +1,41 @@
-# A Neovim Plugin Template
+# nvim-spell
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/ellisonleao/nvim-plugin-template/lint-test.yml?branch=main&style=for-the-badge)
-![Lua](https://img.shields.io/badge/Made%20with%20Lua-blueviolet.svg?style=for-the-badge&logo=lua)
+A small Neovim plugin that provides convenient commands
+for working with Neovim's built-in spell checking.
 
-A template repository for Neovim plugins.
+Features
+- Uses Neovim's built-in `spell`/`spellsuggest`/`spellbadword` APIs.
+- Ignores CJK words by default (heuristic) when suggesting corrections.
+- Persistent user dictionary support via a configurable `spellfile` (default: `~/.config/nvim/spell/custom.en.utf-8.add`).
+-- Useful commands for quick fixes and navigation.
 
-## Using it
-
-Via `gh`:
-
+Installation(lazy.nvim)
+```lua
+require('lazy').setup({
+  {
+    'minhanghuang/spell.nvim',
+    event = 'VeryLazy',
+    config = function()
+      require('nvim-spell').setup({
+        enabled = true,
+        spelllang = { 'en_us,cjk' },
+        -- spellfile = vim.fn.stdpath('config') .. '/spell/custom.en.utf-8.add', -- optional
+      })
+    end,
+  }
+})
 ```
-$ gh repo create my-plugin -p ellisonleao/nvim-plugin-template
-```
 
-Via github web page:
+Configuration
+- `enabled` (boolean): whether to set `vim.opt.spell` during setup.
+- `spelllang` (table): value for `vim.opt.spelllang`, e.g. `{ 'en_us' }`.
+- `spellfile` (string or table): path(s) to persistent spellfile(s). Defaults to `$XDG_CONFIG_HOME/nvim/spell/custom.en.utf-8.add`.
 
-Click on `Use this template`
+Commands
 
-![](https://docs.github.com/assets/cb-36544/images/help/repository/use-this-template-button.png)
-
-## Features and structure
-
-- 100% Lua
-- Github actions for:
-  - running tests using [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) and [busted](https://olivinelabs.com/busted/)
-  - check for formatting errors (Stylua)
-  - vimdocs autogeneration from README.md file
-  - luarocks release (LUAROCKS_API_KEY secret configuration required)
-
-### Plugin structure
-
-```
-.
-├── lua
-│   ├── plugin_name
-│   │   └── module.lua
-│   └── plugin_name.lua
-├── Makefile
-├── plugin
-│   └── plugin_name.lua
-├── README.md
-├── tests
-│   ├── minimal_init.lua
-│   └── plugin_name
-│       └── plugin_name_spec.lua
-```
+| Command | Description |
+| --- | --- |
+| `:SpellSuggest` | Show suggestions for the current word and optionally replace it (uses `vim.ui.select`). |
+| `:SpellNext` `:SpellPrev` | Jump to the next / previous misspelled word (same as `]s` / `[s`). |
+| `:SpellAdd` `:SpellAdd!` | Mark the current word as correct; use `!` to persist the word to the configured `spellfile`. |
+| `:SpellDisable` `:SpellEnable` `:SpellTogglePlugin` | Disable, enable, or toggle plugin behavior (turns Neovim's `spell` option on/off when configured). |
