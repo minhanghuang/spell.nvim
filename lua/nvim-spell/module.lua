@@ -14,9 +14,26 @@ local function _contains_cjk(word)
   if not word or word == "" then
     return false
   end
-  -- quick heuristic: if the word contains common CJK characters range '一'..'龥'
+  -- Check for CJK characters: Chinese (一-龥), Japanese Hiragana (぀-ゟ),
+  -- Katakana (ァ-ヿ), Korean Hangul (가-힣), and common CJK symbols
   -- vim.fn.match returns -1 when no match
-  return vim.fn.match(word, '[一-龥]') ~= -1
+  return vim.fn.match(word, '[一-龥぀-ゟァ-ヿ가-힣]') ~= -1
+end
+
+--- Ensure all configured spellfiles exist (create directories and empty files if needed)
+local function _ensure_spellfiles()
+  local s = vim.o.spellfile or ''
+  if s == '' then return end
+  for path in string.gmatch(s, '([^,]+)') do
+    local p = vim.fn.expand(path)
+    local dir = vim.fn.fnamemodify(p, ':h')
+    if vim.fn.isdirectory(dir) == 0 then
+      vim.fn.mkdir(dir, 'p')
+    end
+    if vim.fn.filereadable(p) == 0 then
+      vim.fn.writefile({}, p)
+    end
+  end
 end
 
 -- ignore list (as a set for fast lookup)
@@ -93,14 +110,19 @@ M.replace_current_word = function(replacement)
   if not replacement or replacement == "" then
     return
   end
-  local row = vim.api.nvim_win_get_cursor(0)[1]
-  local col = vim.fn.col(".")
-  -- expand('<cword>') boundaries
-  local word = vim.fn.expand('<cword>')
-  local start_col = col - #word
-  if start_col < 0 then start_col = 0 end
-  -- nvim_buf_set_text uses 0-indexed columns
-  vim.api.nvim_buf_set_text(0, row-1, start_col, row-1, col-1, { replacement })
+  -- Use getpos to get accurate word boundaries
+  local save_cursor = vim.fn.getpos('.')
+  vim.cmd('normal! viw')  -- visually select inner word
+  local start_pos = vim.fn.getpos('v')
+  local end_pos = vim.fn.getpos('.')
+  vim.fn.setpos('.', save_cursor)  -- restore cursor
+
+  -- nvim_buf_set_text uses 0-indexed positions
+  local row = start_pos[2] - 1
+  local start_col = start_pos[3] - 1
+  local end_col = end_pos[3]
+
+  vim.api.nvim_buf_set_text(0, row, start_col, row, end_col, { replacement })
 end
 
 --- Show suggestions for current word and optionally replace it.
@@ -162,27 +184,12 @@ M.add_current_word = function(persist)
     vim.notify("Contains CJK — not adding to dictionary", vim.log.levels.WARN)
     return
   end
-  local function ensure_spellfiles()
-    -- vim.o.spellfile may be a comma-separated list
-    local s = vim.o.spellfile or ''
-    if s == '' then return end
-    for path in string.gmatch(s, '([^,]+)') do
-      local p = vim.fn.expand(path)
-      local dir = vim.fn.fnamemodify(p, ':h')
-      if vim.fn.isdirectory(dir) == 0 then
-        vim.fn.mkdir(dir, 'p')
-      end
-      if vim.fn.filereadable(p) == 0 then
-        -- create empty file
-        vim.fn.writefile({}, p)
-      end
-    end
-  end
 
   if persist then
-    -- ensure spellfile(s) exist so :spellgood! can open them
-    pcall(ensure_spellfiles)
-    -- check whether the word already exists in any configured spellfile
+    -- Ensure spellfile(s) exist so :spellgood! can write to them
+    pcall(_ensure_spellfiles)
+
+    -- Check whether the word already exists in any configured spellfile
     local function word_in_spellfiles(w)
       local s = vim.o.spellfile or ''
       if s == '' then return false end
@@ -225,11 +232,10 @@ M.check_buffer_to_qf = function()
   local name = vim.api.nvim_buf_get_name(buf)
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   for i, line in ipairs(lines) do
-    -- simple word split; skip CJK-containing words
-    for w, s, e in line:gmatch('()(%w+)()') do
-      local word = s
-      if not _contains_cjk(word) then
-        local bad = vim.fn.spellbadword(word)
+    -- Extract words from line: gmatch returns (start_pos, word_text, end_pos)
+    for start_pos, word_text, end_pos in line:gmatch('()(%w+)()') do
+      if not _contains_cjk(word_text) then
+        local bad = vim.fn.spellbadword(word_text)
         local miss = false
         if type(bad) == 'table' then
           miss = (bad[1] ~= '')
@@ -237,7 +243,12 @@ M.check_buffer_to_qf = function()
           miss = (bad ~= '')
         end
         if miss then
-          table.insert(qflist, { filename = name, lnum = i, col = w, text = word })
+          table.insert(qflist, {
+            filename = name,
+            lnum = i,
+            col = start_pos,
+            text = word_text
+          })
         end
       end
     end

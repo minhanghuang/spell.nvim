@@ -39,3 +39,21 @@ Commands
 | `:SpellNext` `:SpellPrev` | Jump to the next / previous misspelled word (same as `]s` / `[s`). |
 | `:SpellAdd` `:SpellAdd!` | Mark the current word as correct; use `!` to persist the word to the configured `spellfile`. |
 | `:SpellDisable` `:SpellEnable` `:SpellTogglePlugin` | Disable, enable, or toggle plugin behavior (turns Neovim's `spell` option on/off when configured). |
+
+## Development
+
+### Running Tests
+
+This plugin uses [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) for testing.
+
+```bash
+# Run all tests
+make test
+```
+
+Test coverage includes:
+- Basic setup and configuration
+- CJK character detection (Chinese, Japanese, Korean)
+- Word replacement with cursor at different positions
+- Buffer spell checking with quickfix integration
+- Navigation between misspelled words
