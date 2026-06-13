@@ -17,10 +17,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         nvim-versions: ['stable', 'nightly']
-    name: test
+    name: test (${{ matrix.os }}, ${{ matrix.nvim-versions }})
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -29,6 +30,13 @@ jobs:
         with:
           neovim: true
           version: ${{ matrix.nvim-versions }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: install cspell
+        run: npm install -g cspell
 
       - name: run tests
         run: make test
