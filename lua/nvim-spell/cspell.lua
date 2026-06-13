@@ -4,10 +4,11 @@
 local M = {}
 
 ---@type string Default cspell binary name
-local DEFAULT_CSPELL_CMD = 'cspell'
+local DEFAULT_CSPELL_CMD = "cspell"
 
 ---@type string[] Config file names to search for (in order of preference)
-local CONFIG_NAMES = { 'cspell.json', '.cspell.json', 'cspell.yaml', 'cspell.yml', 'cspell.config.yaml', 'cspell.config.yml' }
+local CONFIG_NAMES =
+  { "cspell.json", ".cspell.json", "cspell.yaml", "cspell.yml", "cspell.config.yaml", "cspell.config.yml" }
 
 ---Check whether `cspell` is available on PATH.
 ---@param cmd string|nil
@@ -22,8 +23,8 @@ end
 ---@return string|nil Absolute path to config file, or nil if not found
 M.find_config = function(buf)
   buf = buf or vim.api.nvim_get_current_buf()
-  local dir = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':h')
-  if dir == '' then
+  local dir = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ":h")
+  if dir == "" then
     dir = vim.fn.getcwd()
   end
 
@@ -32,13 +33,13 @@ M.find_config = function(buf)
   local last = nil
   while current ~= last do
     for _, name in ipairs(CONFIG_NAMES) do
-      local candidate = current .. '/' .. name
+      local candidate = current .. "/" .. name
       if vim.fn.filereadable(candidate) == 1 then
         return candidate
       end
     end
     last = current
-    current = vim.fn.fnamemodify(current, ':h')
+    current = vim.fn.fnamemodify(current, ":h")
   end
 
   return nil
@@ -47,39 +48,72 @@ end
 --- Default words pre-seeded into new cspell configs (common programming & Neovim terms).
 local DEFAULT_WORDS = {
   -- Neovim / Lua
-  'nvim', 'neovim', 'Neovim',
-  'lua', 'Luas',
-  'autocmd', 'autocmds',
-  'bufnr', 'bufname',
-  'stdpath', 'rtp',
-  'spelllang', 'spellfile', 'spellgood',
-  'jobstart', 'chansend', 'chanclose',
-  'filereadable',
-  'getcwd',
-  'noplugin',
+  "nvim",
+  "neovim",
+  "Neovim",
+  "lua",
+  "Luas",
+  "autocmd",
+  "autocmds",
+  "bufnr",
+  "bufname",
+  "stdpath",
+  "rtp",
+  "spelllang",
+  "spellfile",
+  "spellgood",
+  "jobstart",
+  "chansend",
+  "chanclose",
+  "filereadable",
+  "getcwd",
+  "noplugin",
   -- General programming
-  'async', 'await',
-  'api', 'APIs',
-  'config', 'configs',
-  'enum', 'enums',
-  'init',
-  'middleware',
-  'namespace',
-  'repo', 'repos',
-  'src',
-  'util', 'utils',
+  "async",
+  "await",
+  "api",
+  "APIs",
+  "config",
+  "configs",
+  "enum",
+  "enums",
+  "init",
+  "middleware",
+  "namespace",
+  "repo",
+  "repos",
+  "src",
+  "util",
+  "utils",
   -- Web / JS
-  'cjs', 'esm', 'npm', 'pnpm', 'yarn',
-  'nodejs', 'Nodejs',
-  'eslint', 'prettier',
-  'ts', 'tsx', 'jsx',
+  "cjs",
+  "esm",
+  "npm",
+  "pnpm",
+  "yarn",
+  "nodejs",
+  "Nodejs",
+  "eslint",
+  "prettier",
+  "ts",
+  "tsx",
+  "jsx",
   -- CLI / Tools
-  'git', 'github', 'GitHub',
-  'ssh', 'bash', 'zsh',
-  'docker', 'Docker',
-  'cmake', 'Makefile',
+  "git",
+  "github",
+  "GitHub",
+  "ssh",
+  "bash",
+  "zsh",
+  "docker",
+  "Docker",
+  "cmake",
+  "Makefile",
   -- Common misspellings people add
-  'todo', 'TODO', 'fixme', 'FIXME',
+  "todo",
+  "TODO",
+  "fixme",
+  "FIXME",
 }
 
 ---Ensure a cspell config file exists at a specific directory.
@@ -94,7 +128,7 @@ M.ensure_config = function(dir, cmd, locale, dictionaries)
   cmd = cmd or DEFAULT_CSPELL_CMD
   dir = dir or vim.fn.getcwd()
 
-  local config_path = dir .. '/cspell.json'
+  local config_path = dir .. "/cspell.json"
 
   -- If the target file already exists, just return it
   if vim.fn.filereadable(config_path) == 1 then
@@ -102,36 +136,33 @@ M.ensure_config = function(dir, cmd, locale, dictionaries)
   end
 
   -- Create via cspell init
-  local args = { cmd, 'init', '-o', config_path, '--format', 'json', '--no-comments' }
-  if locale and locale ~= '' then
-    table.insert(args, '--locale')
+  local args = { cmd, "init", "-o", config_path, "--format", "json", "--no-comments" }
+  if locale and locale ~= "" then
+    table.insert(args, "--locale")
     table.insert(args, locale)
   end
   dictionaries = dictionaries or {}
   for _, d in ipairs(dictionaries) do
-    table.insert(args, '--dictionary')
+    table.insert(args, "--dictionary")
     table.insert(args, d)
   end
   local output = vim.fn.system(args)
   local exit_code = vim.v.shell_error
 
   if exit_code ~= 0 then
-    vim.notify(
-      string.format('[nvim-spell] Failed to create cspell config: %s', output),
-      vim.log.levels.ERROR
-    )
+    vim.notify(string.format("[nvim-spell] Failed to create cspell config: %s", output), vim.log.levels.ERROR)
     return nil
   end
 
   -- Verify the file was created
   if vim.fn.filereadable(config_path) == 0 then
-    vim.notify('[nvim-spell] cspell config was not created: ' .. config_path, vim.log.levels.ERROR)
+    vim.notify("[nvim-spell] cspell config was not created: " .. config_path, vim.log.levels.ERROR)
     return nil
   end
 
   -- Seed with common programming terms
   local lines = vim.fn.readfile(config_path)
-  local content = vim.fn.join(lines, '\n')
+  local content = vim.fn.join(lines, "\n")
   local ok, config = pcall(vim.fn.json_decode, content)
   if ok and config then
     config.words = config.words or {}
@@ -150,11 +181,11 @@ M.ensure_config = function(dir, cmd, locale, dictionaries)
     if added > 0 then
       table.sort(config.words)
       local new_content = vim.fn.json_encode(config)
-      vim.fn.writefile(vim.split(new_content, '\n'), config_path)
+      vim.fn.writefile(vim.split(new_content, "\n"), config_path)
     end
   end
 
-  vim.notify('[nvim-spell] Created cspell config: ' .. config_path, vim.log.levels.INFO)
+  vim.notify("[nvim-spell] Created cspell config: " .. config_path, vim.log.levels.INFO)
   return config_path
 end
 
@@ -162,13 +193,13 @@ end
 ---@param json_str string Raw JSON output from cspell lint
 ---@return table|nil Parsed issues list: { {text, lnum, col, end_col, suggestions} } or nil on parse error
 M.parse_lint_output = function(json_str)
-  if not json_str or json_str == '' then
+  if not json_str or json_str == "" then
     return {}
   end
 
   local ok, data = pcall(vim.fn.json_decode, json_str)
   if not ok then
-    vim.notify('[nvim-spell] Failed to parse cspell output', vim.log.levels.ERROR)
+    vim.notify("[nvim-spell] Failed to parse cspell output", vim.log.levels.ERROR)
     return nil
   end
 
@@ -208,39 +239,39 @@ M.run_lint = function(buf, config_path, callback, cmd, locale, dictionaries)
 
   -- Build the stdin:// URI using the buffer's file path so cspell can infer file type
   local bufname = vim.api.nvim_buf_get_name(buf)
-  local uri = 'stdin://' .. (bufname ~= '' and bufname or vim.fn.getcwd() .. '/buffer')
+  local uri = "stdin://" .. (bufname ~= "" and bufname or vim.fn.getcwd() .. "/buffer")
 
   ---@type string[]
   local args = {
     cmd,
-    'lint',
+    "lint",
     uri,
-    '--reporter',
-    '@cspell/cspell-json-reporter',
-    '--no-progress',
-    '--no-summary',
-    '--no-exit-code',
+    "--reporter",
+    "@cspell/cspell-json-reporter",
+    "--no-progress",
+    "--no-summary",
+    "--no-exit-code",
   }
 
   if config_path and vim.fn.filereadable(config_path) == 1 then
-    table.insert(args, '-c')
+    table.insert(args, "-c")
     table.insert(args, config_path)
   end
 
-  if locale and locale ~= '' then
-    table.insert(args, '--locale')
+  if locale and locale ~= "" then
+    table.insert(args, "--locale")
     table.insert(args, locale)
   end
 
   dictionaries = dictionaries or {}
   for _, d in ipairs(dictionaries) do
-    table.insert(args, '--dictionary')
+    table.insert(args, "--dictionary")
     table.insert(args, d)
   end
 
   -- Get buffer content
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  local content = table.concat(lines, '\n')
+  local content = table.concat(lines, "\n")
 
   local stdout = {}
   local stderr = {}
@@ -263,24 +294,24 @@ M.run_lint = function(buf, config_path, callback, cmd, locale, dictionaries)
       end
     end,
     on_exit = function(_, exit_code)
-      local result = table.concat(stdout, '\n')
-      local err_output = table.concat(stderr, '\n')
+      local result = table.concat(stdout, "\n")
+      local err_output = table.concat(stderr, "\n")
 
       -- exit_code can be non-zero even with --no-exit-code for actual errors
       -- cspell still outputs JSON on stderr for runtime errors
-      if exit_code ~= 0 and result == '' and err_output ~= '' then
+      if exit_code ~= 0 and result == "" and err_output ~= "" then
         -- Check if stderr contains JSON (cspell sometimes outputs to stderr)
-        if vim.trim(err_output):sub(1, 1) == '{' then
+        if vim.trim(err_output):sub(1, 1) == "{" then
           result = err_output
         else
-          callback(nil, 'cspell error (exit ' .. exit_code .. '): ' .. err_output)
+          callback(nil, "cspell error (exit " .. exit_code .. "): " .. err_output)
           return
         end
       end
 
       local issues = M.parse_lint_output(result)
       if issues == nil then
-        callback(nil, 'Failed to parse cspell output')
+        callback(nil, "Failed to parse cspell output")
         return
       end
 
@@ -289,13 +320,13 @@ M.run_lint = function(buf, config_path, callback, cmd, locale, dictionaries)
   })
 
   if job_id <= 0 then
-    callback(nil, 'Failed to start cspell process')
+    callback(nil, "Failed to start cspell process")
     return
   end
 
   -- Send buffer content to cspell via stdin
   vim.fn.chansend(job_id, content)
-  vim.fn.chanclose(job_id, 'stdin')
+  vim.fn.chanclose(job_id, "stdin")
 end
 
 ---Get spelling suggestions for a word synchronously.
@@ -307,26 +338,26 @@ end
 ---@return string[] List of suggested corrections (empty if word is correct or no suggestions)
 M.get_suggestions = function(word, config_path, cmd, locale, dictionaries)
   cmd = cmd or DEFAULT_CSPELL_CMD
-  if not word or word == '' then
+  if not word or word == "" then
     return {}
   end
 
   ---@type string[]
-  local args = { cmd, 'suggestions', word, '--no-color', '--no-strict' }
+  local args = { cmd, "suggestions", word, "--no-color", "--no-strict" }
 
   if config_path and vim.fn.filereadable(config_path) == 1 then
-    table.insert(args, '-c')
+    table.insert(args, "-c")
     table.insert(args, config_path)
   end
 
-  if locale and locale ~= '' then
-    table.insert(args, '--locale')
+  if locale and locale ~= "" then
+    table.insert(args, "--locale")
     table.insert(args, locale)
   end
 
   dictionaries = dictionaries or {}
   for _, d in ipairs(dictionaries) do
-    table.insert(args, '--dictionary')
+    table.insert(args, "--dictionary")
     table.insert(args, d)
   end
 
@@ -337,14 +368,14 @@ M.get_suggestions = function(word, config_path, cmd, locale, dictionaries)
   -- Both cases are valid -- we just need to parse the output
   if exit_code > 1 then
     -- Real error
-    vim.notify('[nvim-spell] cspell suggestions failed: ' .. vim.trim(output), vim.log.levels.WARN)
+    vim.notify("[nvim-spell] cspell suggestions failed: " .. vim.trim(output), vim.log.levels.WARN)
     return {}
   end
 
   -- Parse output: "word:\n - suggestion1\n - suggestion2\n"
   local suggestions = {}
-  for line in output:gmatch('[^\n]+') do
-    local suggestion = line:match('^ %- (.+)$')
+  for line in output:gmatch("[^\n]+") do
+    local suggestion = line:match("^ %- (.+)$")
     if suggestion then
       table.insert(suggestions, suggestion)
     end
@@ -358,35 +389,35 @@ end
 ---@param config_path string Path to cspell.json (must exist)
 ---@return boolean success
 M.add_word = function(word, config_path)
-  if not word or word == '' then
+  if not word or word == "" then
     return false
   end
 
   if not config_path or vim.fn.filereadable(config_path) == 0 then
-    vim.notify('[nvim-spell] Config file not found: ' .. (config_path or 'nil'), vim.log.levels.ERROR)
+    vim.notify("[nvim-spell] Config file not found: " .. (config_path or "nil"), vim.log.levels.ERROR)
     return false
   end
 
   -- Read config
   local lines = vim.fn.readfile(config_path)
   if not lines or #lines == 0 then
-    vim.notify('[nvim-spell] Config file is empty: ' .. config_path, vim.log.levels.ERROR)
+    vim.notify("[nvim-spell] Config file is empty: " .. config_path, vim.log.levels.ERROR)
     return false
   end
 
   -- vim.fn.readfile returns lines with trailing newline already stripped.
   -- Use vim.fn.join to reconstruct the content.
-  local content = vim.fn.join(lines, '\n')
+  local content = vim.fn.join(lines, "\n")
 
   -- Strip single-line JSONC comments (// not inside a URL like https://)
   -- Match // that is NOT preceded by : (to preserve https://, etc.)
-  content = content:gsub('(^|[^:])//[^\n]*', '%1')
+  content = content:gsub("(^|[^:])//[^\n]*", "%1")
   -- Strip block comments
-  content = content:gsub('/%*.-%*/', '')
+  content = content:gsub("/%*.-%*/", "")
 
   local ok, config = pcall(vim.fn.json_decode, content)
   if not ok then
-    vim.notify('[nvim-spell] Failed to parse cspell config as JSON: ' .. config_path, vim.log.levels.ERROR)
+    vim.notify("[nvim-spell] Failed to parse cspell config as JSON: " .. config_path, vim.log.levels.ERROR)
     return false
   end
 
@@ -406,7 +437,7 @@ M.add_word = function(word, config_path)
   local new_content = vim.fn.json_encode(config)
   -- json_encode doesn't add newlines between elements. Pretty-print by decoding/encoding again
   -- or just write as-is with the sorted words.
-  vim.fn.writefile(vim.split(new_content, '\n'), config_path)
+  vim.fn.writefile(vim.split(new_content, "\n"), config_path)
   vim.notify('[nvim-spell] Added "' .. word .. '" to ' .. config_path, vim.log.levels.INFO)
   return true
 end
@@ -421,9 +452,9 @@ M.word_in_config = function(word, config_path)
   end
 
   local lines = vim.fn.readfile(config_path)
-  local content = vim.fn.join(lines, '\n')
-  content = content:gsub('(^|[^:])//[^\n]*', '%1')
-  content = content:gsub('/%*.-%*/', '')
+  local content = vim.fn.join(lines, "\n")
+  content = content:gsub("(^|[^:])//[^\n]*", "%1")
+  content = content:gsub("/%*.-%*/", "")
 
   local ok, config = pcall(vim.fn.json_decode, content)
   if not ok then

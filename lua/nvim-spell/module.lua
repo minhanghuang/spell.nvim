@@ -2,25 +2,25 @@
 ---Core spell-checking logic built on top of the cspell CLI.
 local M = {}
 
-local cspell = require('nvim-spell.cspell')
+local cspell = require("nvim-spell.cspell")
 
 ---@type integer Diagnostic namespace for nvim-spell
-M.diagnostic_namespace = vim.api.nvim_create_namespace('nvim-spell')
+M.diagnostic_namespace = vim.api.nvim_create_namespace("nvim-spell")
 
 ---Get the word currently under the cursor.
 ---@return string|nil
 local function _current_word()
-  return vim.fn.expand('<cword>')
+  return vim.fn.expand("<cword>")
 end
 
 ---Get the cspell command from plugin config (falls back to 'cspell').
 ---@return string
 local function _get_cspell_cmd()
-  local ok, plugin = pcall(require, 'nvim-spell')
+  local ok, plugin = pcall(require, "nvim-spell")
   if ok and plugin.config and plugin.config.cspell_cmd then
     return plugin.config.cspell_cmd
   end
-  return 'cspell'
+  return "cspell"
 end
 
 ---Get the cspell config path for the current buffer.
@@ -29,7 +29,7 @@ end
 ---@param buf integer|nil
 ---@return string|nil
 local function _get_config_path(buf)
-  local ok, plugin = pcall(require, 'nvim-spell')
+  local ok, plugin = pcall(require, "nvim-spell")
   if ok and plugin.config and plugin.config.config_file then
     local expanded = vim.fn.expand(plugin.config.config_file)
     if vim.fn.filereadable(expanded) == 1 then
@@ -44,7 +44,7 @@ local function _get_config_path(buf)
   end
 
   -- Fallback: global config in Neovim's config directory
-  local global = vim.fn.stdpath('config') .. '/spell/cspell.json'
+  local global = vim.fn.stdpath("config") .. "/spell/cspell.json"
   if vim.fn.filereadable(global) == 1 then
     return global
   end
@@ -55,7 +55,7 @@ end
 ---Get the locale from plugin config.
 ---@return string|nil
 local function _get_locale()
-  local ok, plugin = pcall(require, 'nvim-spell')
+  local ok, plugin = pcall(require, "nvim-spell")
   if ok and plugin.config and plugin.config.locale then
     return plugin.config.locale
   end
@@ -65,7 +65,7 @@ end
 ---Get the dictionaries from plugin config.
 ---@return table
 local function _get_dictionaries()
-  local ok, plugin = pcall(require, 'nvim-spell')
+  local ok, plugin = pcall(require, "nvim-spell")
   if ok and plugin.config and plugin.config.dictionaries then
     return plugin.config.dictionaries
   end
@@ -79,16 +79,16 @@ end
 ---@return string
 local function _get_default_config_dir(buf)
   local bufname = vim.api.nvim_buf_get_name(buf)
-  if bufname ~= '' then
-    local dir = vim.fn.fnamemodify(bufname, ':h')
+  if bufname ~= "" then
+    local dir = vim.fn.fnamemodify(bufname, ":h")
     if vim.fn.isdirectory(dir) == 1 then
       return dir
     end
   end
   -- Fallback: Neovim config spell directory
-  local spelldir = vim.fn.stdpath('config') .. '/spell'
+  local spelldir = vim.fn.stdpath("config") .. "/spell"
   if vim.fn.isdirectory(spelldir) == 0 then
-    vim.fn.mkdir(spelldir, 'p')
+    vim.fn.mkdir(spelldir, "p")
   end
   return spelldir
 end
@@ -106,7 +106,7 @@ M.check_buffer_diagnostics = function(buf)
 
   local cmd = _get_cspell_cmd()
   if not cspell.is_cspell_available(cmd) then
-    vim.notify('[nvim-spell] cspell not found. Install: npm install -g cspell', vim.log.levels.WARN)
+    vim.notify("[nvim-spell] cspell not found. Install: npm install -g cspell", vim.log.levels.WARN)
     return
   end
 
@@ -116,7 +116,7 @@ M.check_buffer_diagnostics = function(buf)
   cspell.run_lint(buf, config_path, function(issues, err)
     if err then
       vim.schedule(function()
-        vim.notify('[nvim-spell] ' .. err, vim.log.levels.ERROR)
+        vim.notify("[nvim-spell] " .. err, vim.log.levels.ERROR)
       end)
       return
     end
@@ -135,7 +135,7 @@ M.check_buffer_diagnostics = function(buf)
 
       -- Get severity from config
       local severity = vim.diagnostic.severity.INFO
-      local ok, plugin = pcall(require, 'nvim-spell')
+      local ok, plugin = pcall(require, "nvim-spell")
       if ok and plugin.config and plugin.config.diagnostic_severity then
         severity = plugin.config.diagnostic_severity
       end
@@ -153,7 +153,7 @@ M.check_buffer_diagnostics = function(buf)
             end_col = issue.end_col,
             message = 'Misspelled: "' .. issue.text .. '"',
             severity = severity,
-            source = 'cspell',
+            source = "cspell",
             user_data = {
               suggestions = issue.suggestions,
               text = issue.text,
@@ -173,7 +173,7 @@ M.check_buffer_to_qf = function()
   local cmd = _get_cspell_cmd()
 
   if not cspell.is_cspell_available(cmd) then
-    vim.notify('[nvim-spell] cspell not found. Install: npm install -g cspell', vim.log.levels.WARN)
+    vim.notify("[nvim-spell] cspell not found. Install: npm install -g cspell", vim.log.levels.WARN)
     return
   end
 
@@ -183,14 +183,14 @@ M.check_buffer_to_qf = function()
   cspell.run_lint(buf, config_path, function(issues, err)
     if err then
       vim.schedule(function()
-        vim.notify('[nvim-spell] ' .. err, vim.log.levels.ERROR)
+        vim.notify("[nvim-spell] " .. err, vim.log.levels.ERROR)
       end)
       return
     end
 
     vim.schedule(function()
       if not issues or #issues == 0 then
-        vim.notify('No misspelled words found in buffer', vim.log.levels.INFO)
+        vim.notify("No misspelled words found in buffer", vim.log.levels.INFO)
         return
       end
 
@@ -204,9 +204,9 @@ M.check_buffer_to_qf = function()
         })
       end
 
-      vim.fn.setqflist(qflist, 'r')
-      vim.cmd('copen')
-      vim.notify('Found ' .. tostring(#qflist) .. ' misspellings — quickfix opened', vim.log.levels.INFO)
+      vim.fn.setqflist(qflist, "r")
+      vim.cmd("copen")
+      vim.notify("Found " .. tostring(#qflist) .. " misspellings — quickfix opened", vim.log.levels.INFO)
     end)
   end, _get_cspell_cmd(), _get_locale())
 end
@@ -216,13 +216,13 @@ end
 ---@return table { ok: boolean, message: string, suggestions: string[] }
 M.check_word = function(word)
   word = word or _current_word()
-  if not word or word == '' then
-    return { ok = true, message = 'no word', suggestions = {} }
+  if not word or word == "" then
+    return { ok = true, message = "no word", suggestions = {} }
   end
 
   local cmd = _get_cspell_cmd()
   if not cspell.is_cspell_available(cmd) then
-    return { ok = true, message = 'cspell not available', suggestions = {} }
+    return { ok = true, message = "cspell not available", suggestions = {} }
   end
 
   local config_path = _get_config_path()
@@ -259,8 +259,8 @@ end
 ---Check the current word under cursor and notify the user.
 M.check_current_word = function()
   local word = _current_word()
-  if not word or word == '' then
-    vim.notify('No word under cursor to check', vim.log.levels.INFO)
+  if not word or word == "" then
+    vim.notify("No word under cursor to check", vim.log.levels.INFO)
     return
   end
 
@@ -269,14 +269,14 @@ M.check_current_word = function()
     vim.notify(result.message, vim.log.levels.INFO)
   else
     if #result.suggestions == 0 then
-      vim.notify(result.message .. ': no suggestions', vim.log.levels.WARN)
+      vim.notify(result.message .. ": no suggestions", vim.log.levels.WARN)
     else
       -- Show first 10 suggestions
       local show = {}
       for i = 1, math.min(#result.suggestions, 10) do
         table.insert(show, result.suggestions[i])
       end
-      vim.notify(result.message .. ': ' .. table.concat(show, ', '), vim.log.levels.WARN)
+      vim.notify(result.message .. ": " .. table.concat(show, ", "), vim.log.levels.WARN)
     end
   end
 end
@@ -285,20 +285,20 @@ end
 ---Uses `viw` visual selection to get accurate word boundaries, then `nvim_buf_set_text`.
 ---@param replacement string
 M.replace_current_word = function(replacement)
-  if not replacement or replacement == '' then
+  if not replacement or replacement == "" then
     return
   end
 
   -- Save cursor position
-  local save_cursor = vim.fn.getpos('.')
+  local save_cursor = vim.fn.getpos(".")
 
   -- Use viw to select the inner word and get its boundaries
-  vim.cmd('normal! viw')
-  local start_pos = vim.fn.getpos('v')
-  local end_pos = vim.fn.getpos('.')
+  vim.cmd("normal! viw")
+  local start_pos = vim.fn.getpos("v")
+  local end_pos = vim.fn.getpos(".")
 
   -- Restore cursor
-  vim.fn.setpos('.', save_cursor)
+  vim.fn.setpos(".", save_cursor)
 
   -- nvim_buf_set_text uses 0-indexed [row, col)
   local row = start_pos[2] - 1
@@ -317,14 +317,14 @@ end
 ---Show spelling suggestions for the word under cursor and optionally replace it.
 M.suggest_and_replace_current = function()
   local word = _current_word()
-  if not word or word == '' then
-    vim.notify('No word under cursor', vim.log.levels.INFO)
+  if not word or word == "" then
+    vim.notify("No word under cursor", vim.log.levels.INFO)
     return
   end
 
   local cmd = _get_cspell_cmd()
   if not cspell.is_cspell_available(cmd) then
-    vim.notify('[nvim-spell] cspell not found. Install: npm install -g cspell', vim.log.levels.WARN)
+    vim.notify("[nvim-spell] cspell not found. Install: npm install -g cspell", vim.log.levels.WARN)
     return
   end
 
@@ -332,7 +332,7 @@ M.suggest_and_replace_current = function()
   local suggestions = cspell.get_suggestions(word, config_path, cmd, _get_locale(), _get_dictionaries())
 
   if #suggestions == 0 then
-    vim.notify('No suggestions for: ' .. word, vim.log.levels.INFO)
+    vim.notify("No suggestions for: " .. word, vim.log.levels.INFO)
     return
   end
 
@@ -377,7 +377,7 @@ M.suggest_and_replace_current = function()
     for i = 1, math.min(#ordered, 5) do
       table.insert(show, ordered[i])
     end
-    vim.notify('Suggestions: ' .. table.concat(show, ', '), vim.log.levels.INFO)
+    vim.notify("Suggestions: " .. table.concat(show, ", "), vim.log.levels.INFO)
   end
 end
 
@@ -396,8 +396,8 @@ end
 ---@param persist boolean|nil If true (bang), persist to config file
 M.add_current_word = function(persist)
   local word = _current_word()
-  if not word or word == '' then
-    vim.notify('No word under cursor', vim.log.levels.INFO)
+  if not word or word == "" then
+    vim.notify("No word under cursor", vim.log.levels.INFO)
     return
   end
 
@@ -405,7 +405,7 @@ M.add_current_word = function(persist)
     -- Persist to cspell.json
     local cmd = _get_cspell_cmd()
     if not cspell.is_cspell_available(cmd) then
-      vim.notify('[nvim-spell] cspell not found. Install: npm install -g cspell', vim.log.levels.WARN)
+      vim.notify("[nvim-spell] cspell not found. Install: npm install -g cspell", vim.log.levels.WARN)
       return
     end
 

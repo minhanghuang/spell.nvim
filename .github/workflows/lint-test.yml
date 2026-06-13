@@ -30,5 +30,12 @@ jobs:
           neovim: true
           version: ${{ matrix.nvim-versions }}
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: install cspell
+        run: npm install -g cspell
+
       - name: run tests
         run: make test
