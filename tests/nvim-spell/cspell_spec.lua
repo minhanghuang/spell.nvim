@@ -35,7 +35,7 @@ describe("cspell integration", function()
       vim.fn.writefile({ '{"words":[]}' }, config_path)
 
       local filepath = dir .. "/test.txt"
-      vim.cmd("new " .. filepath)
+      vim.cmd("new " .. vim.fn.fnameescape(filepath))
       local buf = vim.api.nvim_get_current_buf()
 
       local found = cspell.find_config(buf)
@@ -54,7 +54,7 @@ describe("cspell integration", function()
       vim.fn.writefile({ '{"words":[]}' }, config_path)
 
       local filepath = subdir .. "/test.txt"
-      vim.cmd("new " .. filepath)
+      vim.cmd("new " .. vim.fn.fnameescape(filepath))
       local buf = vim.api.nvim_get_current_buf()
 
       local found = cspell.find_config(buf)
@@ -71,7 +71,7 @@ describe("cspell integration", function()
       vim.fn.mkdir(dir, "p")
 
       local filepath = dir .. "/test.txt"
-      vim.cmd("new " .. filepath)
+      vim.cmd("new " .. vim.fn.fnameescape(filepath))
       local buf = vim.api.nvim_get_current_buf()
 
       local found = cspell.find_config(buf)
