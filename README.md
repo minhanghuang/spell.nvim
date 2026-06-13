@@ -1,84 +1,94 @@
 # nvim-spell
 
-A small Neovim plugin that provides convenient commands
-for working with Neovim's built-in spell checking.
+A Neovim spell-checking plugin powered by [cspell](https://cspell.org), using Neovim's built-in `vim.diagnostic` API for displaying results.
 
-Features
-- Uses Neovim's built-in `spell`/`spellsuggest`/`spellbadword` APIs.
-- Ignores CJK words by default (heuristic) when suggesting corrections.
-- Persistent user dictionary support via a configurable `spellfile` (default: `~/.config/nvim/spell/custom.en.utf-8.add`).
--- Useful commands for quick fixes and navigation.
+## Requirements
 
-Installation(lazy.nvim)
+- [cspell](https://cspell.org) CLI (`npm install -g cspell`)
+
+## Installation (lazy.nvim)
+
 ```lua
-require('lazy').setup({
-  {
-    'minhanghuang/spell.nvim',
-    event = 'VeryLazy',
-    config = function()
-      require('nvim-spell').setup({
-        enabled = true,
-        spelllang = { 'en_us,cjk' },
-        -- spellfile = vim.fn.stdpath('config') .. '/spell/custom.en.utf-8.add', -- optional
-        -- exclude_filetypes = { 'my_custom_filetype' }, -- optional: additional filetypes to exclude
-      })
-    end,
-  }
+{
+  'minhanghuang/spell.nvim',
+  event = 'VeryLazy',
+  config = function()
+    require('nvim-spell').setup()
+  end,
+}
+```
+
+## Configuration
+
+```lua
+require('nvim-spell').setup({
+  -- Language locale(s), e.g. 'en-US', 'en,zh-cn' (default: nil)
+  locale = nil,
+
+  -- cspell dictionaries: bundled, no extra install needed
+  -- Important: always include 'en_us' (or 'en-gb') for base word recognition
+  dictionaries = { 'en_us', 'lua', 'bash', 'softwareTerms' },
+
+  -- cspell binary path (default: 'cspell')
+  cspell_cmd = 'cspell',
+
+  -- cspell config file (default: auto-detect → ~/.config/nvim/spell/cspell.json)
+  config_file = nil,
+
+  -- Run on save / while typing
+  check_on_save = true,
+  check_on_change = false,      -- debounced, set true for real-time
+  check_delay = 500,            -- debounce ms (only when check_on_change = true)
+
+  -- Allowlist / denylist (both support string or table)
+  filetypes = nil,              -- nil = all, or e.g. { 'markdown', 'text' }
+  exclude_filetypes = {         -- file explorers & special buffers excluded by default
+    'neo-tree', 'NvimTree', 'nerdtree', 'netrw', 'help', 'qf', 'lazy', 'mason',
+  },
+
+  -- Diagnostic severity level
+  diagnostic_severity = vim.diagnostic.severity.INFO,
 })
 ```
 
-Configuration
-- `enabled` (boolean): whether to set `vim.opt.spell` during setup.
-- `spelllang` (table): value for `vim.opt.spelllang`, e.g. `{ 'en_us' }`.
-- `spellfile` (string or table): path(s) to persistent spellfile(s). Defaults to `$XDG_CONFIG_HOME/nvim/spell/custom.en.utf-8.add`.
-- `exclude_filetypes` (table, optional): additional filetypes to exclude from spell checking. File trees, terminals, and other special buffers are excluded by default.
+## Dictionaries
 
-Commands
+cspell bundles **60+ dictionaries** — no extra install needed. Always include `en_us` first:
+
+| Dictionary | Covers |
+|-----------|--------|
+| `en_us` | American English (always include this) |
+| `lua` | Lua / Neovim APIs |
+| `bash`, `shell` | Shell scripts |
+| `python`, `rust`, `typescript`, `golang` | Programming languages |
+| `softwareTerms` | General dev jargon |
+| `git`, `docker`, `npm` | Dev tools |
+| `markdown`, `html`, `css` | Web / docs |
+| `companies` | Company names |
+
+## Commands
 
 | Command | Description |
 | --- | --- |
-| `:SpellSuggest` | Show suggestions for the current word and optionally replace it (uses `vim.ui.select`). |
-| `:SpellNext` `:SpellPrev` | Jump to the next / previous misspelled word (same as `]s` / `[s`). |
-| `:SpellAdd` `:SpellAdd!` | Mark the current word as correct; use `!` to persist the word to the configured `spellfile`. |
-| `:SpellDisable` `:SpellEnable` `:SpellTogglePlugin` | Disable, enable, or toggle plugin behavior. **Synchronizes across all windows and buffers** - when disabled in one window, all windows are disabled. |
+| `:SpellSuggest` | Show suggestions for the current word and optionally replace it (`vim.ui.select`). |
+| `:SpellNext` `:SpellPrev` | Jump to the next / previous misspelled word. |
+| `:SpellAdd` | Mark the current word as correct for this session. |
+| `:SpellAdd!` | Persist the word to the cspell config file (`cspell.json`). |
+| `:SpellCheck` | Run cspell on the current buffer and show diagnostics. |
+| `:SpellCheckBuffer` | Run cspell and populate the quickfix list. |
+| `:SpellDisable` `:SpellEnable` `:SpellTogglePlugin` | Disable, enable, or toggle plugin behavior. |
 
-## Features
+## How It Works
 
-### Multi-Window Synchronization
-
-The plugin automatically synchronizes spell checking state across all windows and buffers:
-- When you disable spell checking in one window (`:SpellDisable`), it's disabled in **all** windows
-- When you enable spell checking (`:SpellEnable`), it's enabled in **all** windows
-- New windows/buffers automatically inherit the current spell checking state
-- No need to manually enable/disable spell checking for each window
-
-### Smart Window Exclusion
-
-The plugin automatically excludes special windows from spell checking:
-- **File trees**: NvimTree, neo-tree, nerdtree, CHADTree, fern
-- **Terminals**: terminal buffers, toggleterm
-- **Special buffers**: quickfix, help, man pages, lspinfo
-- **Plugins**: Telescope, fugitive, Trouble, aerial, dashboard, etc.
-- **Custom exclusions**: Add your own filetypes via `exclude_filetypes` config option
-
-This means your file tree and terminal windows won't have spell checking enabled even when you enable it globally.
+- **Diagnostics**: `cspell lint` runs asynchronously on buffer content and results are displayed via `vim.diagnostic`.
+- **Suggestions**: `cspell suggestions <word>` provides correction candidates.
+- **Dictionary**: `:SpellAdd!` writes to the nearest `cspell.json` (project root or `~/.config/nvim/spell/`).
+- **Config file**: Auto-detected from project directories, or set via `config_file` option. Auto-created on first `setup()`.
+- **Navigation**: Uses `vim.diagnostic.goto_next` / `goto_prev` for jumping between errors.
 
 ## Development
 
-### Running Tests
-
-This plugin uses [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) for testing.
-
 ```bash
-# Run all tests
-make test
+npm install -g cspell   # required for tests
+make test                # run all tests
 ```
-
-Test coverage includes:
-- Basic setup and configuration
-- CJK character detection (Chinese, Japanese, Korean)
-- Word replacement with cursor at different positions
-- Buffer spell checking with quickfix integration
-- Navigation between misspelled words
-- Multi-window spell state synchronization
-- Smart exclusion of file trees and special windows
