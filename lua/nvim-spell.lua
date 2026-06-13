@@ -45,16 +45,16 @@ local function should_exclude_window(win)
   end
 
   -- Get buffer properties
-  local buftype = vim.api.nvim_buf_get_option(buf, 'buftype')
-  local filetype = vim.api.nvim_buf_get_option(buf, 'filetype')
+  local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
+  local filetype = vim.api.nvim_buf_get_option(buf, "filetype")
 
   -- Exclude special buffer types
   local excluded_buftypes = {
-    'nofile',
-    'terminal',
-    'prompt',
-    'quickfix',
-    'help',
+    "nofile",
+    "terminal",
+    "prompt",
+    "quickfix",
+    "help",
   }
 
   for _, bt in ipairs(excluded_buftypes) do
@@ -65,25 +65,25 @@ local function should_exclude_window(win)
 
   -- Exclude file tree and other special filetypes
   local excluded_filetypes = {
-    'NvimTree',
-    'nvim-tree',
-    'neo-tree',
-    'nerdtree',
-    'CHADTree',
-    'fern',
-    'fugitive',
-    'gitcommit',
-    'qf',
-    'help',
-    'man',
-    'lspinfo',
-    'TelescopePrompt',
-    'alpha',
-    'dashboard',
-    'aerial',
-    'Outline',
-    'Trouble',
-    'toggleterm',
+    "NvimTree",
+    "nvim-tree",
+    "neo-tree",
+    "nerdtree",
+    "CHADTree",
+    "fern",
+    "fugitive",
+    "gitcommit",
+    "qf",
+    "help",
+    "man",
+    "lspinfo",
+    "TelescopePrompt",
+    "alpha",
+    "dashboard",
+    "aerial",
+    "Outline",
+    "Trouble",
+    "toggleterm",
   }
 
   -- Add user-configured exclusions
@@ -109,9 +109,9 @@ local function apply_spell_to_all_windows(enabled)
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     if should_exclude_window(win) then
       -- Explicitly disable spell for excluded windows
-      vim.api.nvim_win_set_option(win, 'spell', false)
+      vim.api.nvim_win_set_option(win, "spell", false)
     else
-      vim.api.nvim_win_set_option(win, 'spell', enabled)
+      vim.api.nvim_win_set_option(win, "spell", enabled)
     end
   end
 end
@@ -124,10 +124,10 @@ local function setup_spell_autocommand()
   end
 
   -- Create autocommand group
-  plugin_state.augroup = vim.api.nvim_create_augroup('NvimSpellSync', { clear = true })
+  plugin_state.augroup = vim.api.nvim_create_augroup("NvimSpellSync", { clear = true })
 
   -- Apply spell state to new windows/buffers
-  vim.api.nvim_create_autocmd({ 'WinNew', 'BufWinEnter' }, {
+  vim.api.nvim_create_autocmd({ "WinNew", "BufWinEnter" }, {
     group = plugin_state.augroup,
     callback = function()
       if plugin_state.spell_enabled ~= nil then
@@ -138,7 +138,7 @@ local function setup_spell_autocommand()
         end
       end
     end,
-    desc = 'Sync spell state to new windows',
+    desc = "Sync spell state to new windows",
   })
 end
 
@@ -162,31 +162,35 @@ M.setup = function(args)
   -- Ensure a default persistent spellfile exists if not provided
   local spellfile = M.config.spellfile
   if not spellfile then
-    local cfg = vim.fn.stdpath('config')
-    local spelldir = cfg .. '/spell'
+    local cfg = vim.fn.stdpath("config")
+    local spelldir = cfg .. "/spell"
     if vim.fn.isdirectory(spelldir) == 0 then
-      vim.fn.mkdir(spelldir, 'p')
+      vim.fn.mkdir(spelldir, "p")
     end
-    spellfile = spelldir .. '/custom.en.utf-8.add'
+    spellfile = spelldir .. "/custom.en.utf-8.add"
   end
   vim.opt.spellfile = spellfile
 
   -- Ensure spellfile(s) exist: create parent dirs and empty files if necessary
   local function ensure_spellfiles(pathval)
     local s = pathval or vim.o.spellfile
-    if not s or s == '' then return end
-    for p in string.gmatch(s, '([^,]+)') do
+    if not s or s == "" then
+      return
+    end
+    for p in string.gmatch(s, "([^,]+)") do
       local expanded = vim.fn.expand(p)
-      local dir = vim.fn.fnamemodify(expanded, ':h')
+      local dir = vim.fn.fnamemodify(expanded, ":h")
       if vim.fn.isdirectory(dir) == 0 then
-        vim.fn.mkdir(dir, 'p')
+        vim.fn.mkdir(dir, "p")
       end
       if vim.fn.filereadable(expanded) == 0 then
         vim.fn.writefile({}, expanded)
       end
     end
   end
-  pcall(function() ensure_spellfiles(spellfile) end)
+  pcall(function()
+    ensure_spellfiles(spellfile)
+  end)
 
   -- Initialize plugin state tracking
   if M.config.enabled ~= nil then
@@ -207,7 +211,7 @@ end
 M.disable = function()
   plugin_state.spell_enabled = false
   apply_spell_to_all_windows(false)
-  vim.notify('nvim-spell disabled (all windows)', vim.log.levels.INFO)
+  vim.notify("nvim-spell disabled (all windows)", vim.log.levels.INFO)
 end
 
 --- Enable plugin behaviour: re-apply setup (re-register keymaps and spell)
@@ -225,7 +229,7 @@ M.enable = function()
     vim.opt.spelllang = M.config.spelllang
   end
 
-  vim.notify('nvim-spell enabled (all windows)', vim.log.levels.INFO)
+  vim.notify("nvim-spell enabled (all windows)", vim.log.levels.INFO)
 end
 
 --- Toggle plugin enable/disable (plugin-level toggle)
