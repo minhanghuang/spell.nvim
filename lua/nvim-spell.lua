@@ -70,11 +70,17 @@ M.setup = function(args)
     end
   end
 
-  -- Validate cspell availability (non-blocking check)
+  -- Resolve cspell binary path (PATH first, then mason.nvim fallback)
   local cspell_mod = require("nvim-spell.cspell")
+  M.config.cspell_cmd = cspell_mod.resolve_cspell_path(M.config.cspell_cmd)
+
+  -- Validate cspell availability (non-blocking check)
   if not cspell_mod.is_cspell_available(M.config.cspell_cmd) then
     vim.schedule(function()
-      vim.notify("[nvim-spell] cspell not found. Install with: npm install -g cspell", vim.log.levels.WARN)
+      vim.notify(
+        "[nvim-spell] cspell not found. Install via: npm install -g cspell, or :MasonInstall cspell",
+        vim.log.levels.WARN
+      )
     end)
   end
 
