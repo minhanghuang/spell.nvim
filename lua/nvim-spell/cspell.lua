@@ -18,6 +18,42 @@ M.is_cspell_available = function(cmd)
   return vim.fn.executable(cmd) == 1
 end
 
+---Resolve the cspell command to a usable path, trying multiple sources.
+---Priority: absolute path (expand ~) > PATH > mason.nvim > original value.
+---@param cmd string|nil The cspell command from user config (default "cspell")
+---@return string The resolved command (may be a full path or the original string)
+M.resolve_cspell_path = function(cmd)
+  cmd = cmd or DEFAULT_CSPELL_CMD
+
+  -- 1. User supplied an absolute or home-relative path — use it directly
+  if cmd:sub(1, 1) == "/" or cmd:sub(1, 1) == "~" then
+    return vim.fn.expand(cmd)
+  end
+
+  -- 2. Check system PATH
+  if vim.fn.executable(cmd) == 1 then
+    return cmd
+  end
+
+  -- 3. Check mason.nvim installation (no hard dependency)
+  local ok, registry = pcall(require, "mason-registry")
+  if ok and type(registry) == "table" and registry.is_installed then
+    if registry.is_installed("cspell") then
+      local pkg_ok, pkg = pcall(registry.get_package, "cspell")
+      if pkg_ok and pkg and pkg.get_install_path then
+        local install_path = pkg:get_install_path()
+        local cspell_bin = install_path .. "/node_modules/.bin/cspell"
+        if vim.fn.executable(cspell_bin) == 1 then
+          return cspell_bin
+        end
+      end
+    end
+  end
+
+  -- 4. Nothing found — return original; will fail availability check downstream
+  return cmd
+end
+
 ---Walk up from a buffer's directory to find a cspell config file.
 ---@param buf integer|nil Buffer handle (default: current buffer)
 ---@return string|nil Absolute path to config file, or nil if not found
